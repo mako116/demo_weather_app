@@ -1,75 +1,141 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ActivityIndicator,
+  TouchableOpacity,
+  Animated,
+  useColorScheme,
+} from 'react-native';
+import { useWeather } from '../../hooks/useWeather';
+import WeatherIcon from '../../hooks/WeatherIcon';
+// import { AnimatedGradient } from './AnimatedGradient'; // adjust import path
+import { router } from 'expo-router';
+import { AnimatedGradient } from '@/components/section/Animated';
+import DotLottieAnimation from '@/components/LottieButton';
 
-import { HelloWave } from '@/components/HelloWave';
-import ParallaxScrollView from '@/components/ParallaxScrollView';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
+export default function Home() {
+  const { weather, loading } = useWeather();
+  const colorScheme = useColorScheme();
+  const isDarkMode = colorScheme === 'dark';
 
-export default function HomeScreen() {
+  const [displayTemp, setDisplayTemp] = useState(0);
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(20)).current;
+
+  useEffect(() => {
+    if (weather) {
+      // Animate temperature count-up
+      let start = 0;
+      const toValue = weather.hourly.temperature_2m[0];
+      const duration = 1500;
+      const increment = toValue / (duration / 30);
+      const interval = setInterval(() => {
+        start += increment;
+        if (start >= toValue) {
+          setDisplayTemp(Math.round(toValue));
+          clearInterval(interval);
+        } else {
+          setDisplayTemp(Math.round(start));
+        }
+      }, 30);
+
+      // Animate fade and slide-in
+      fadeAnim.setValue(0);
+      slideAnim.setValue(20);
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 700,
+          useNativeDriver: true,
+        }),
+        Animated.timing(slideAnim, {
+          toValue: 0,
+          duration: 700,
+          useNativeDriver: true,
+        }),
+      ]).start();
+
+      return () => clearInterval(interval);
+    }
+  }, [weather]);
+
+  if (loading || !weather) {
+    return (
+      <View
+        style={[
+          styles.loader,
+          { backgroundColor: isDarkMode ? '#203a43' : '#2980b9' },
+        ]}
+      >
+        <ActivityIndicator size="large" color={isDarkMode ? '#eee' : '#fff'} />
+      </View>
+    );
+  }
+
+  const code = weather.hourly.weather_code[0];
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+    <AnimatedGradient weatherCode={code} style={styles.container}>
+      <Text style={[styles.city, { color: isDarkMode ? '#eee' : '#fff' }]}>Berlin</Text>
+      <WeatherIcon code={code} />
+      <Animated.View
+        style={{
+          opacity: fadeAnim,
+          transform: [{ translateY: slideAnim }],
+        }}
+      >
+        <Text style={[styles.temp, { color: isDarkMode ? '#eee' : '#fff' }]}>
+          {displayTemp}°C
+        </Text>
+      </Animated.View>
+      <TouchableOpacity
+        style={[
+          styles.detailBtn,
+          { backgroundColor: isDarkMode ? '#eee' : '#fff' },
+        ]}
+        onPress={() => router.push('/(routes)/weather-details')}
+      >
+        <Text style={[styles.detailText, { color: isDarkMode ? '#203a43' : '#2980b9' }]}>
+          View Details
+        </Text>
+        <DotLottieAnimation/>
+      </TouchableOpacity>
+    </AnimatedGradient>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
+  loader: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  container: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+  },
+  city: {
+    fontSize: 30,
+    fontWeight: 'bold',
+  },
+  temp: {
+    fontSize: 64,
+    fontWeight: 'bold',
+    marginVertical: 16,
+  },
+  detailBtn: {
+    marginTop: 24,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 12,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
-  },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  detailText: {
+    fontSize: 16,
   },
 });
