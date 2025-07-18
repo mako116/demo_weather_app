@@ -48,20 +48,7 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => <Ionicons name="home" size={28} color={color} />,
         }}
       />
-      <Tabs.Screen
-        name="search"
-        options={{
-          title: 'Search',
-          tabBarIcon: ({ color }) => <Feather name="search" size={26} color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="profile"
-        options={{
-          title: 'Profile',
-          tabBarIcon: ({ color }) => <MaterialCommunityIcons name="account-circle" size={28} color={color} />,
-        }}
-      />
+      
     </Tabs>
   );
 }
